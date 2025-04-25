@@ -54,17 +54,8 @@ Then open `index.html` in any modern web browser (Chrome, Firefox, Edge, Safari,
 ## 🛠️ Tech Stack
 - **HTML5**
 - **TailwindCSS** for styling
-- **Vanilla JavaScript** (No frameworks!)
 - **Canvas Confetti** 🎉 for celebrations
 - **LocalStorage** for saving user progress
-
----
-
-## 🚧 Roadmap Ideas
-- Add support for custom number ranges
-- Global leaderboards (optional)
-- Dark mode 🌙
-- Mobile optimization improvements
 
 ---
 

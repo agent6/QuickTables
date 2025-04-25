@@ -15,7 +15,7 @@ Master your math facts — Addition, Subtraction, Multiplication, and Division �
 - **On-Screen Numpad + Keyboard Input**  
 - **Auto-Advance on Correct Answers**  
 - **Visual Performance Tracker Matrix**
-   - 🟩 **Green**: Correct & Quick
+   - 🟩 **Green**: Correct & Proficient
    - 🟨 **Yellow**: Correct but Slow
    - ⬛ **Gray**: Practiced but Unreliable
    - ⬜ **White**: Not Yet Practiced

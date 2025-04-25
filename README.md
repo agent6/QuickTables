@@ -25,8 +25,8 @@ QuickTables is a web-based app designed to help students practice multiplication
 5. Watch your matrix change colors as you improve.
 
 ## 🖥️ Demo
-Simply open the `index.html` file in your browser — no installation needed!
-Or run in GitHub Pages
+Simply open the `index.html` file in your browser — no installation needed!  
+Or access it from GitHub Pages  
 [QuickTables on GitHub Pages](https://agent6.github.io/QuickTables/)
 
 ## 📂 Installation

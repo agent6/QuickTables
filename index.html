@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multiplication Practice</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #performance-matrix table { border-collapse: collapse; }
+    #performance-matrix th, #performance-matrix td { border: 1px solid #ccc; width: 30px; height: 30px; text-align: center; }
+    .white { background: white; }
+    .gray { background: lightgray; }
+    .yellow { background: yellow; }
+    .green { background: lightgreen; }
+    #numpad button { width: 50px; height: 50px; margin: 2px; font-size: 18px; }
+    #input { font-size: 24px; margin-bottom: 10px; min-height: 30px; }
+    #controls, #timers { margin: 10px 0; }
+    #test { display: none; }
+  </style>
+</head>
+<body>
+  <div id="dashboard">
+    <h1>Multiplication Practice Dashboard</h1>
+    <div id="matrix-container">
+      <div id="performance-matrix"></div>
+    </div>
+    <div id="controls">
+      <label><strong>Time per question:</strong></label>
+      <label><input type="radio" name="questionTime" value="3" checked> 3 sec</label>
+      <label><input type="radio" name="questionTime" value="6"> 6 sec</label>
+      <label><input type="radio" name="questionTime" value="12"> 12 sec</label>
+      <button id="start-button">Start Test</button>
+    </div>
+  </div>
+
+  <div id="test">
+    <div id="timers">
+      <div>Overall Time: <span id="overall-timer">90</span>s</div>
+      <div>Question Time: <span id="question-timer"></span>s</div>
+    </div>
+    <div id="question-area">
+      <div id="question" style="font-size:32px; margin-bottom:10px;"></div>
+      <div id="input"></div>
+      <div id="numpad"></div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    const statsKey = 'multiplicationStats';
+    let stats = {};
+
+    function loadStats() {
+      const stored = localStorage.getItem(statsKey);
+      stats = stored ? JSON.parse(stored) : {};
+      for (let i = 0; i <= 12; i++) {
+        for (let j = 0; j <= 12; j++) {
+          const key = `${i}_${j}`;
+          if (!stats[key]) stats[key] = { attempts: 0, correct: 0, totalTime: 0 };
+        }
+      }
+    }
+
+    function saveStats() {
+      localStorage.setItem(statsKey, JSON.stringify(stats));
+    }
+
+    function getCellClass(i, j) {
+      const s = stats[`${i}_${j}`];
+      if (s.attempts === 0) return 'white';
+      if (s.correct >= 3) {
+        const avg = s.totalTime / s.correct;
+        const tLimit = selectedTime * 1000;
+        return avg <= tLimit / 2 ? 'green' : 'yellow';
+      }
+      return 'gray';
+    }
+
+    function renderMatrix() {
+      const container = document.getElementById('performance-matrix');
+      container.innerHTML = '';
+      const table = document.createElement('table');
+      const header = document.createElement('tr');
+      header.appendChild(document.createElement('th'));
+      for (let j = 0; j <= 12; j++) {
+        const th = document.createElement('th');
+        th.textContent = j;
+        header.appendChild(th);
+      }
+      table.appendChild(header);
+
+      for (let i = 0; i <= 12; i++) {
+        const row = document.createElement('tr');
+        const th = document.createElement('th');
+        th.textContent = i;
+        row.appendChild(th);
+        for (let j = 0; j <= 12; j++) {
+          const td = document.createElement('td');
+          td.id = `cell-${i}-${j}`;
+          td.className = getCellClass(i, j);
+          row.appendChild(td);
+        }
+        table.appendChild(row);
+      }
+      container.appendChild(table);
+    }
+
+    let selectedTime = 6;
+    document.querySelectorAll('input[name="questionTime"]').forEach(radio => {
+      radio.addEventListener('change', () => selectedTime = parseInt(radio.value));
+    });
+
+    let overallTimerId, questionTimerId, questionIntervalId;
+    let overallTimeLeft = 90;
+    let questionStartTime, currentPair;
+
+    const questionTimerSpan = document.getElementById('question-timer');
+    const overallTimerSpan = document.getElementById('overall-timer');
+    const questionDiv = document.getElementById('question');
+    const inputDiv = document.getElementById('input');
+    const numpadDiv = document.getElementById('numpad');
+    const startButton = document.getElementById('start-button');
+    const dashboard = document.getElementById('dashboard');
+    const testDiv = document.getElementById('test');
+
+    // Build numpad
+    function addButton(text, fn) {
+      const b = document.createElement('button');
+      b.textContent = text;
+      b.addEventListener('click', fn);
+      numpadDiv.appendChild(b);
+    }
+    for (let d = 1; d <= 9; d++) addButton(d, () => appendInput(d));
+    addButton('0', () => appendInput(0));
+    addButton('←', () => { inputDiv.textContent = inputDiv.textContent.slice(0, -1); });
+    addButton('C', () => { inputDiv.textContent = ''; });
+
+    // Keyboard input
+    document.addEventListener('keydown', e => {
+      if (testDiv.style.display === 'block') {
+        if (e.key >= '0' && e.key <= '9') appendInput(e.key);
+        else if (e.key === 'Backspace') inputDiv.textContent = inputDiv.textContent.slice(0, -1);
+      }
+    });
+
+    function appendInput(d) {
+      inputDiv.textContent += d;
+      checkAnswer();
+    }
+
+    function checkAnswer() {
+      const ans = parseInt(inputDiv.textContent);
+      if (ans === currentPair[0] * currentPair[1]) {
+        const timeTaken = Date.now() - questionStartTime;
+        updateStats(currentPair[0], currentPair[1], true, timeTaken);
+        nextQuestion();
+      }
+    }
+
+    function updateStats(a, b, correct, timeTaken) {
+      const key = `${a}_${b}`;
+      stats[key].attempts++;
+      if (correct) {
+        stats[key].correct++;
+        stats[key].totalTime += timeTaken;
+      }
+      saveStats();
+    }
+
+    function nextQuestion() {
+      clearTimeout(questionTimerId);
+      clearInterval(questionIntervalId);
+      inputDiv.textContent = '';
+      if (overallTimeLeft <= 0) return endTest();
+      askQuestion();
+    }
+
+    function askQuestion() {
+      const a = Math.floor(Math.random() * 13);
+      const b = Math.floor(Math.random() * 13);
+      currentPair = [a, b];
+      questionDiv.textContent = `${a} × ${b} =`;
+      questionStartTime = Date.now();
+
+      let qTimeLeft = selectedTime;
+      questionTimerSpan.textContent = qTimeLeft;
+      questionIntervalId = setInterval(() => {
+        qTimeLeft--;
+        questionTimerSpan.textContent = qTimeLeft;
+        if (qTimeLeft <= 0) clearInterval(questionIntervalId);
+      }, 1000);
+      questionTimerId = setTimeout(() => {
+        updateStats(a, b, false, 0);
+        nextQuestion();
+      }, selectedTime * 1000);
+    }
+
+    function startTest() {
+      loadStats(); renderMatrix();
+      dashboard.style.display = 'none';
+      testDiv.style.display = 'block';
+      overallTimeLeft = 90;
+      overallTimerSpan.textContent = overallTimeLeft;
+      overallTimerId = setInterval(() => {
+        overallTimeLeft--;
+        overallTimerSpan.textContent = overallTimeLeft;
+        if (overallTimeLeft <= 0) { clearInterval(overallTimerId); endTest(); }
+      }, 1000);
+      askQuestion();
+    }
+
+    function endTest() {
+      clearTimeout(questionTimerId);
+      clearInterval(questionIntervalId);
+      clearInterval(overallTimerId);
+      alert('Time is up!');
+      testDiv.style.display = 'none';
+      dashboard.style.display = 'block';
+      renderMatrix();
+    }
+
+    startButton.addEventListener('click', startTest);
+    // Initial
+    loadStats(); renderMatrix();
+  })();
+  </script>
+</body>
+</html>

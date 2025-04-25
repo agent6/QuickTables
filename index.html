@@ -1,363 +1,284 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Arithmetic Practice</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-  <style>
-    table { border-collapse: collapse; border-spacing: 0; }
-    td    { width: 2.5rem; height: 2.5rem; padding: 0; margin: 0; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Arithmetic Practice</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+<style>
+  table{border-collapse:collapse;border-spacing:0}
+  td   {width:2.5rem;height:2.5rem;padding:0;margin:0}
+</style>
 </head>
 <body class="bg-gray-100 min-h-screen">
 
-  <!-- LOGIN / OPERATION SELECTION -->
-  <div id="loginView" class="flex items-center justify-center h-screen">
-    <div class="bg-white p-6 rounded shadow w-80 space-y-4">
-      <h2 class="text-xl font-bold">Who’s practicing?</h2>
-      <select id="userSelect" class="w-full p-2 border rounded"></select>
-      <input id="newUserInput" type="text" placeholder="New username" class="w-full p-2 border rounded"/>
-      <button id="addUserBtn" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-        Add User
-      </button>
-      <div>
-        <span class="block mb-1">Pick an operation:</span>
-        <label class="inline-flex items-center mr-2">
-          <input type="radio" name="op" value="addition" checked/><span class="ml-1">+</span>
-        </label>
-        <label class="inline-flex items-center mr-2">
-          <input type="radio" name="op" value="subtraction"/><span class="ml-1">−</span>
-        </label>
-        <label class="inline-flex items-center mr-2">
-          <input type="radio" name="op" value="multiplication"/><span class="ml-1">×</span>
-        </label>
-        <label class="inline-flex items-center">
-          <input type="radio" name="op" value="division"/><span class="ml-1">÷</span>
-        </label>
-      </div>
-      <button id="loginBtn" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
-        Start Practice
-      </button>
+<!-- ───────── LOGIN ───────── -->
+<div id="loginView" class="flex items-center justify-center h-screen">
+  <div class="bg-white p-6 rounded shadow w-80 space-y-4">
+    <h2 class="text-xl font-bold">Who’s practicing?</h2>
+    <select id="userSelect" class="w-full p-2 border rounded"></select>
+    <input id="newUserInput" type="text" placeholder="New username" class="w-full p-2 border rounded"/>
+    <button id="addUserBtn" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Add User</button>
+
+    <div>
+      <span class="block mb-1">Pick an operation:</span>
+      <label class="inline-flex items-center mr-2"><input type="radio" name="op" value="addition"/><span class="ml-1">+</span></label>
+      <label class="inline-flex items-center mr-2"><input type="radio" name="op" value="subtraction"/><span class="ml-1">−</span></label>
+      <label class="inline-flex items-center mr-2"><input type="radio" name="op" value="multiplication"/><span class="ml-1">×</span></label>
+      <label class="inline-flex items-center">      <input type="radio" name="op" value="division"/><span class="ml-1">÷</span></label>
+    </div>
+
+    <button id="loginBtn" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Start Practice</button>
+  </div>
+</div>
+
+<!-- ────── DASHBOARD & TEST ────── -->
+<div id="appView" class="hidden p-4">
+  <div id="dashboard" class="max-w-2xl mx-auto">
+    <h1 class="text-2xl font-bold text-center mb-4">Practice Dashboard</h1>
+
+    <div class="flex justify-center mb-3 space-x-3">
+      <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="3"/><span>3&nbsp;s</span></label>
+      <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="6" checked/><span>6&nbsp;s</span></label>
+      <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="12"/><span>12&nbsp;s</span></label>
+    </div>
+
+    <div class="overflow-auto mb-4">
+      <table id="matrix" class="border border-gray-400 mx-auto"></table>
+    </div>
+
+    <div class="text-center space-x-2">
+      <button id="changeOpBtn" class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">Change Operation</button>
+      <button id="startBtn"    class="px-4 py-2 bg-blue-600   text-white rounded hover:bg-blue-700">Start Test</button>
     </div>
   </div>
 
-  <!-- DASHBOARD & TEST -->
-  <div id="appView" class="hidden p-4">
-    <div id="dashboard" class="max-w-2xl mx-auto">
-      <h1 class="text-2xl font-bold text-center mb-4">Practice Dashboard</h1>
-      <div class="flex justify-center mb-3 space-x-3">
-        <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="3"/><span>3 sec</span></label>
-        <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="6" checked/><span>6 sec</span></label>
-        <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="12"/><span>12 sec</span></label>
-      </div>
-      <div class="overflow-auto mb-4">
-        <table id="matrix" class="border border-gray-400 mx-auto"></table>
-      </div>
-      <div class="text-center space-x-2">
-        <button id="changeOpBtn" class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">
-          Change Operation
-        </button>
-        <button id="startBtn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-          Start Test
-        </button>
-      </div>
+  <!-- ────────── TEST VIEW ────────── -->
+  <div id="testView" class="hidden max-w-md mx-auto mt-6">
+    <div class="flex justify-between mb-2 text-sm">
+      <div>Total: <span id="totalTimer">90</span>s</div>
+      <div>Left:  <span id="qTimer">0</span>s</div>
     </div>
+    <div id="feedback"  class="text-center text-4xl h-12 mb-2"></div>
+    <div id="question"  class="text-2xl font-bold text-center mb-2"></div>
+    <div id="inputDisplay" class="text-xl text-center mb-3 h-8">&nbsp;</div>
 
-    <div id="testView" class="hidden max-w-md mx-auto mt-6">
-      <div class="flex justify-between mb-2">
-        <div>Total: <span id="totalTimer">90</span>s</div>
-        <div>Left:  <span id="qTimer">0</span>s</div>
-      </div>
-      <div id="feedback" class="text-center text-4xl h-12 mb-2"></div>
-      <div id="question" class="text-2xl font-bold text-center mb-2"></div>
-      <div id="inputDisplay" class="text-xl text-center mb-3">&nbsp;</div>
-      <div class="grid grid-cols-3 gap-1">
-        <button class="num-btn p-2 bg-white rounded shadow" data-digit="1">1</button>
-        <button class="num-btn p-2 bg-white rounded shadow" data-digit="2">2</button>
-        <button class="num-btn p-2 bg-white rounded shadow" data-digit="3">3</button>
-        <button class="num-btn p-2 bg-white rounded shadow" data-digit="4">4</button>
-        <button class="num-btn p-2 bg-white rounded shadow" data-digit="5">5</button>
-        <button class="num-btn p-2 bg-white rounded shadow" data-digit="6">6</button>
-        <button class="num-btn p-2 bg-white rounded shadow" data-digit="7">7</button>
-        <button class="num-btn p-2 bg-white rounded shadow" data-digit="8">8</button>
-        <button class="num-btn p-2 bg-white rounded shadow" data-digit="9">9</button>
-        <button id="clearBtn" class="col-span-2 p-2 bg-red-200 rounded shadow">Clear</button>
-        <button class="num-btn p-2 bg-white rounded shadow" data-digit="0">0</button>
-      </div>
+    <div class="grid grid-cols-3 gap-1">
+      <button class="num-btn p-2 h-16 bg-white rounded shadow" data-digit="1">1</button>
+      <button class="num-btn p-2 h-16 bg-white rounded shadow" data-digit="2">2</button>
+      <button class="num-btn p-2 h-16 bg-white rounded shadow" data-digit="3">3</button>
+      <button class="num-btn p-2 h-16 bg-white rounded shadow" data-digit="4">4</button>
+      <button class="num-btn p-2 h-16 bg-white rounded shadow" data-digit="5">5</button>
+      <button class="num-btn p-2 h-16 bg-white rounded shadow" data-digit="6">6</button>
+      <button class="num-btn p-2 h-16 bg-white rounded shadow" data-digit="7">7</button>
+      <button class="num-btn p-2 h-16 bg-white rounded shadow" data-digit="8">8</button>
+      <button class="num-btn p-2 h-16 bg-white rounded shadow" data-digit="9">9</button>
+      <button id="clearBtn" class="col-span-2 p-2 h-16 bg-red-200 rounded shadow">Clear</button>
+      <button class="num-btn p-2 h-16 bg-white rounded shadow" data-digit="0">0</button>
     </div>
   </div>
+</div>
 
-  <script>
-    const matrixSize = 13;
-    const usersKey   = 'mpUsers';
-    let stats, currentUser, currentOp, timeLimit;
-    let totalTime, qTime, totalInterval, qInterval;
-    let current = {i:0,j:0}, currentInput = '', questionStart = 0;
+<!-- ─────────── answer overlay ─────────── -->
+<div id="answerOverlay"
+     class="fixed inset-0 bg-black/70 hidden flex items-center justify-center z-50">
+  <div id="answerText" class="text-white text-6xl font-bold"></div>
+</div>
 
-    // — Persistence —
-    function loadUsers() {
-      return JSON.parse(localStorage.getItem(usersKey) || '[]');
-    }
-    function saveUsers(list) {
-      localStorage.setItem(usersKey, JSON.stringify(list));
-    }
-    function loadStats() {
-      const key = `mpStats_${currentUser}_${currentOp}`;
-      const stored = localStorage.getItem(key);
-      if (stored) return JSON.parse(stored);
-      return Array.from({length: matrixSize}, () =>
-        Array.from({length: matrixSize}, () => ({total:0,correct:0,timeSum:0}))
-      );
-    }
-    function saveStats() {
-      localStorage.setItem(
-        `mpStats_${currentUser}_${currentOp}`,
-        JSON.stringify(stats)
-      );
-    }
+<script>
+/* ───── dimensions ───── */
+const dims=op=>({addition:[13,13],multiplication:[13,13],subtraction:[10,10],division:[13,12]})[op];
 
-    // — Operation Rules —
-    function isValidPair(i,j) {
-      if (currentOp === 'division') {
-        // only integer quotients, no ÷0
-        return j !== 0 && i % j === 0;
+/* ───── globals & persistence ───── */
+let user='', op='addition', stats;
+let timeLimit=6,totalTime=90,qTime=0,totalInt,qInt;
+let cur={r:0,c:0},input='',qStart=0;
+
+const USERS_KEY='mpUsers', LAST_USER='mpLastUser', LAST_OP='mpLastOp';
+const users =()=>JSON.parse(localStorage.getItem(USERS_KEY)||'[]');
+const saveUsers=u=>localStorage.setItem(USERS_KEY,JSON.stringify(u));
+
+function loadStats(){
+  const [rows,cols]=dims(op);
+  const key=`mpStats_${user}_${op}`;
+  const stored=localStorage.getItem(key);
+  if(stored){
+    const s=JSON.parse(stored);
+    if(s.length===rows&&s[0].length===cols) return s;
+  }
+  return Array.from({length:rows},()=>Array.from({length:cols},()=>({total:0,correct:0,time:0})));
+}
+const saveStats=()=>localStorage.setItem(`mpStats_${user}_${op}`,JSON.stringify(stats));
+
+/* ───── helpers for problems ───── */
+const sym =()=>({addition:'+',subtraction:'−',multiplication:'×',division:'÷'})[op];
+const divisor=c=>c+1, dividend=(r,c)=>r*divisor(c);
+const minuSub=(r,c)=>[Math.max(r,c),Math.min(r,c)];
+function problem(r,c){
+  switch(op){
+    case 'addition':       return [`${r}+${c}`, r+c];
+    case 'multiplication': return [`${r}×${c}`, r*c];
+    case 'subtraction':{
+      const[a,b]=minuSub(r,c); return [`${a}−${b}`, a-b];
+    }
+    case 'division':       return [`${dividend(r,c)}÷${divisor(c)}`, r];
+  }
+}
+
+/* ───── weight calc ───── */
+function weights(){
+  const [rows,cols]=dims(op); let list=[],tot=0;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const s=stats[r][c];
+    const base=1/((r+1)*(c+1));
+    const prof=Math.max(0.1,1-(s.total? s.correct/s.total:0));
+    const w=base*prof; list.push({r,c,w}); tot+=w;
+  }
+  return{list,tot};
+}
+
+/* ───── dashboard ───── */
+function render(){
+  const tbl=document.getElementById('matrix'); tbl.innerHTML='';
+  const [rows,cols]=dims(op);
+  for(let r=0;r<rows;r++){
+    const tr=document.createElement('tr');
+    for(let c=0;c<cols;c++){
+      const td=document.createElement('td');
+      td.className='border border-gray-300 text-xs text-center align-middle';
+      const s=stats[r][c]; let bg='bg-white';
+      if(s.total){
+        const err=(s.total-s.correct)/s.total;
+        if(err>=0.25)bg='bg-gray-300';
+        else if(s.correct>=3){
+          bg=(s.time/s.correct)<=timeLimit/2?'bg-green-300':'bg-yellow-300';
+        }else bg='bg-yellow-300';
       }
-      if (currentOp === 'subtraction') {
-        // full 0–12 grid, we'll blank negatives in render
-        return true;
-      }
-      return true;
+      td.classList.add(bg);
+      const[prob,ans]=problem(r,c);
+      td.innerHTML=`${prob}<br>${ans}`; tr.appendChild(td);
     }
+    tbl.appendChild(tr);
+  }
+}
 
-    function shouldShowSubtraction(i,j) {
-      return i - j >= 0;
-    }
+/* ───── timers ───── */
+function resetQ(){clearInterval(qInt);qTime=timeLimit;document.getElementById('qTimer').textContent=qTime;}
+function tickQ(){
+  clearInterval(qInt);
+  qInt=setInterval(()=>{
+    qTime--; document.getElementById('qTimer').textContent=qTime;
+    if(!qTime){clearInterval(qInt);showAnswer(); }
+  },1000);
+}
+function startTotal(){
+  document.getElementById('totalTimer').textContent=totalTime;
+  totalInt=setInterval(()=>{
+    totalTime--;document.getElementById('totalTimer').textContent=totalTime;
+    if(!totalTime) finish();
+  },1000);
+}
 
-    function computeAnswer(i,j) {
-      switch(currentOp) {
-        case 'addition':       return i + j;
-        case 'subtraction':    return i - j;
-        case 'multiplication': return i * j;
-        case 'division':       return i / j;
-      }
-    }
+/* ───── timeout overlay ───── */
+function showAnswer(){
+  const correct=problem(cur.r,cur.c)[1];
+  stats[cur.r][cur.c].total++; saveStats(); render();
 
-    function getSymbol(){
-      return ({addition:'+', subtraction:'−', multiplication:'×', division:'÷'})[currentOp];
-    }
+  document.getElementById('answerText').textContent=correct;
+  const ov=document.getElementById('answerOverlay'); ov.classList.remove('hidden');
+  setTimeout(()=>{ov.classList.add('hidden'); if(totalTime) next();},1000);
+}
 
-    // — Weighted Sampling —
-    function computeWeights() {
-      let list = [], totalW = 0;
-      for(let i=0;i<matrixSize;i++){
-        for(let j=0;j<matrixSize;j++){
-          if (!isValidPair(i,j)) continue;
-          if (currentOp==='subtraction' && !shouldShowSubtraction(i,j)) continue;
-          const s     = stats[i][j];
-          const base  = 1/((i+1)*(j+1));
-          const ratio = s.total>0 ? s.correct/s.total : 0;
-          const prof  = Math.max(0.1,1-ratio);
-          const w     = base * prof;
-          list.push({i,j,w});
-          totalW += w;
-        }
-      }
-      return {list,totalW};
-    }
+/* ───── normal flow ───── */
+function next(){
+  input='';document.getElementById('inputDisplay').textContent='';
+  const{list,tot}=weights(); let r=Math.random()*tot,p=list[0];
+  for(const f of list){if(r<f.w){p=f;break;}r-=f.w;}
+  cur={r:p.r,c:p.c};
+  document.getElementById('question').textContent=problem(cur.r,cur.c)[0]+' =';
+  resetQ();tickQ();qStart=Date.now();
+}
+function flash(txt,cb){
+  const fb=document.getElementById('feedback');fb.textContent=txt;
+  setTimeout(()=>{fb.textContent='';cb&&cb();},600);
+}
+function handleCorrect(){
+  const s=stats[cur.r][cur.c];
+  s.total++; s.correct++; s.time+=(Date.now()-qStart)/1000;
+  saveStats(); render(); clearInterval(qInt);
+  confetti({particleCount:40,spread:60});
+  flash('🎉',()=>{if(totalTime) next();});
+}
 
-    // — Render Dashboard —
-    function renderMatrix() {
-      const tbl = document.getElementById('matrix');
-      tbl.innerHTML = '';
-      for(let i=0;i<matrixSize;i++){
-        const row = document.createElement('tr');
-        for(let j=0;j<matrixSize;j++){
-          const cell = document.createElement('td');
-          cell.className = 'border border-gray-300 text-xs text-center align-middle';
-          // blank rules
-          if (!isValidPair(i,j) ||
-              (currentOp==='subtraction' && !shouldShowSubtraction(i,j)))
-          {
-            cell.innerHTML = '&nbsp;';
-          } else {
-            // color logic
-            const s = stats[i][j];
-            let bg = 'bg-white';
-            if (s.total>0) {
-              const errs    = s.total - s.correct;
-              const errRate = errs/s.total;
-              if (errRate>=0.25)             bg = 'bg-gray-300';
-              else if (s.correct>=3) {
-                const avg = s.timeSum/s.correct;
-                bg = avg<=timeLimit/2 ? 'bg-green-300' : 'bg-yellow-300';
-              } else                         bg = 'bg-yellow-300';
-            }
-            cell.classList.add(bg);
-            // show problem + answer
-            const sym = getSymbol();
-            const ans = computeAnswer(i,j);
-            cell.innerHTML = `${i}${sym}${j}<br>${ans}`;
-          }
-          row.appendChild(cell);
-        }
-        tbl.appendChild(row);
-      }
-    }
+/* ───── input ───── */
+function addDigit(d){
+  input+=d;document.getElementById('inputDisplay').textContent=input;
+  const correctStr=problem(cur.r,cur.c)[1].toString();
+  if(input.length===correctStr.length){
+    if(input===correctStr) handleCorrect();
+    else{flash('❌');input='';document.getElementById('inputDisplay').textContent='';}
+  }
+}
+document.querySelectorAll('.num-btn').forEach(b=>b.onclick=()=>addDigit(b.dataset.digit));
+document.getElementById('clearBtn').onclick=()=>{input='';document.getElementById('inputDisplay').textContent='';};
+document.onkeydown=e=>{
+  if(/^[0-9]$/.test(e.key)) addDigit(e.key);
+  else if(e.key==='Backspace'){input=input.slice(0,-1);document.getElementById('inputDisplay').textContent=input;}
+};
 
-    // — Timers —
-    function resetQTimer() {
-      clearInterval(qInterval);
-      qTime = timeLimit;
-      document.getElementById('qTimer').textContent = qTime;
-    }
-    function startTotalTimer() {
-      document.getElementById('totalTimer').textContent = totalTime;
-      totalInterval = setInterval(()=>{
-        totalTime--;
-        document.getElementById('totalTimer').textContent = totalTime;
-        if (totalTime<=0) endTest();
-      },1000);
-    }
-    function startQTimer() {
-      clearInterval(qInterval);
-      qInterval = setInterval(()=>{
-        qTime--;
-        document.getElementById('qTimer').textContent = qTime;
-        if (qTime<=0) {
-          clearInterval(qInterval);
-          handleAnswer(null);
-        }
-      },1000);
-    }
-    function stopQTimer(){ clearInterval(qInterval); }
+/* ───── lifecycle ───── */
+document.getElementById('startBtn').onclick=()=>{
+  document.querySelectorAll('input[name=timeLimit]').forEach(r=>{if(r.checked)timeLimit=+r.value;});
+  totalTime=90;render();
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('testView').classList.remove('hidden');
+  next();startTotal();
+};
+function finish(){clearInterval(totalInt);clearInterval(qInt);document.getElementById('testView').classList.add('hidden');render();document.getElementById('dashboard').classList.remove('hidden');}
+document.getElementById('changeOpBtn').onclick=()=>{
+  document.getElementById('appView').classList.add('hidden');
+  document.getElementById('loginView').classList.remove('hidden');
+  setLoginSelections();                       // restore last selections
+};
 
-    // — Question Flow —
-    function nextFact(){
-      currentInput=''; 
-      document.getElementById('inputDisplay').textContent='';
-      const {list,totalW} = computeWeights();
-      let r = Math.random()*totalW, pick = list[0];
-      for(const item of list){
-        if (r<item.w){ pick=item; break; }
-        r-=item.w;
-      }
-      current = {i:pick.i, j:pick.j};
-      document.getElementById('question').textContent =
-        `${current.i} ${getSymbol()} ${current.j} =`;
-      resetQTimer(); startQTimer();
-      questionStart = Date.now();
-    }
+/* ───── login helpers ───── */
+function setLoginSelections(){
+  const sel=document.getElementById('userSelect');
+  if(user&&Array.from(sel.options).some(o=>o.value===user)) sel.value=user;
+  document.querySelectorAll('input[name=op]').forEach(r=>{r.checked=r.value===op;});
+}
 
-    function handleAnswer(input){
-      stopQTimer();
-      const correct   = computeAnswer(current.i,current.j);
-      const cellStats = stats[current.i][current.j];
-      cellStats.total++;
-      let ok = false;
-      if (parseFloat(input) === correct){
-        cellStats.correct++;
-        cellStats.timeSum += (Date.now()-questionStart)/1000;
-        ok = true;
-      }
-      saveStats(); renderMatrix();
-      const fb = document.getElementById('feedback');
-      fb.textContent = ok ? '🎉' : '❌';
-      if (ok) confetti({particleCount:40,spread:60});
-      setTimeout(()=>{
-        fb.textContent='';
-        if (totalTime>0) nextFact();
-      },600);
-    }
+function initUsers(){
+  const sel=document.getElementById('userSelect'); sel.innerHTML='';
+  users().forEach(u=>{
+    const o=document.createElement('option');o.value=u;o.textContent=u;sel.appendChild(o);
+  });
+  // pick last-used if present
+  const lastUser=localStorage.getItem(LAST_USER);
+  if(lastUser&&Array.from(sel.options).some(o=>o.value===lastUser)) sel.value=lastUser;
+}
+document.getElementById('addUserBtn').onclick=()=>{
+  const n=document.getElementById('newUserInput').value.trim(); if(!n)return;
+  const u=users(); if(!u.includes(n)){u.push(n);saveUsers(u);initUsers();}
+  document.getElementById('newUserInput').value='';
+};
 
-    // — Input —
-    function submitInput(){
-      if (!currentInput) return;
-      handleAnswer(currentInput);
-    }
-    document.querySelectorAll('.num-btn').forEach(btn=>
-      btn.addEventListener('click',()=>{
-        currentInput += btn.dataset.digit;
-        document.getElementById('inputDisplay').textContent = currentInput;
-        submitInput();
-      })
-    );
-    document.getElementById('clearBtn').addEventListener('click',()=>{
-      currentInput=''; document.getElementById('inputDisplay').textContent='';
-    });
-    document.addEventListener('keydown',e=>{
-      if (/^[0-9]$/.test(e.key)){
-        currentInput += e.key;
-        document.getElementById('inputDisplay').textContent = currentInput;
-      } else if (e.key==='Backspace'){
-        currentInput = currentInput.slice(0,-1);
-        document.getElementById('inputDisplay').textContent = currentInput;
-      }
-      // auto-submit on match
-      if (currentInput && parseFloat(currentInput)===computeAnswer(current.i,current.j)) {
-        submitInput();
-      }
-    });
+document.getElementById('loginBtn').onclick=()=>{
+  user=document.getElementById('userSelect').value;
+  op=document.querySelector('input[name=op]:checked').value;
+  if(!user)return;
+  localStorage.setItem(LAST_USER,user);
+  localStorage.setItem(LAST_OP,  op);
+  stats=loadStats();
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('appView').classList.remove('hidden');
+  render();
+};
 
-    // — Start / End —
-    document.getElementById('startBtn').addEventListener('click',()=>{
-      document.querySelectorAll('input[name=timeLimit]').forEach(r=>{
-        if(r.checked) timeLimit = +r.value;
-      });
-      totalTime = 90;
-      renderMatrix();
-      document.getElementById('dashboard').classList.add('hidden');
-      document.getElementById('testView').classList.remove('hidden');
-      nextFact(); startTotalTimer();
-    });
-    function endTest(){
-      clearInterval(totalInterval);
-      stopQTimer();
-      document.getElementById('testView').classList.add('hidden');
-      renderMatrix();
-      document.getElementById('dashboard').classList.remove('hidden');
-    }
-
-    // — Change Operation —
-    document.getElementById('changeOpBtn').addEventListener('click',()=>{
-      document.getElementById('appView').classList.add('hidden');
-      document.getElementById('loginView').classList.remove('hidden');
-    });
-
-    // — Login Flow —
-    function initUserSelect(){
-      const sel = document.getElementById('userSelect');
-      sel.innerHTML = '';
-      loadUsers().forEach(u=>{
-        const opt = document.createElement('option');
-        opt.value=u; opt.textContent=u;
-        sel.appendChild(opt);
-      });
-    }
-    document.getElementById('addUserBtn').addEventListener('click',()=>{
-      const name = document.getElementById('newUserInput').value.trim();
-      if (!name) return;
-      const users = loadUsers();
-      if (!users.includes(name)){
-        users.push(name);
-        saveUsers(users);
-        initUserSelect();
-      }
-      document.getElementById('newUserInput').value='';
-    });
-    document.getElementById('loginBtn').addEventListener('click',()=>{
-      currentUser = document.getElementById('userSelect').value;
-      currentOp   = document.querySelector('input[name=op]:checked').value;
-      if (!currentUser) return;
-      stats = loadStats();
-      document.getElementById('loginView').classList.add('hidden');
-      document.getElementById('appView').classList.remove('hidden');
-      renderMatrix();
-    });
-
-    // — Init —
-    initUserSelect();
-  </script>
+/* ───── on load ───── */
+op=localStorage.getItem(LAST_OP)||'addition';
+initUsers(); setLoginSelections();   // make radios reflect last-op
+</script>
 </body>
 </html>

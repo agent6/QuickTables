@@ -1,228 +1,277 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Multiplication Practice</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #performance-matrix table { border-collapse: collapse; }
-    #performance-matrix th, #performance-matrix td { border: 1px solid #ccc; width: 30px; height: 30px; text-align: center; }
-    .white { background: white; }
-    .gray { background: lightgray; }
-    .yellow { background: yellow; }
-    .green { background: lightgreen; }
-    #numpad button { width: 50px; height: 50px; margin: 2px; font-size: 18px; }
-    #input { font-size: 24px; margin-bottom: 10px; min-height: 30px; }
-    #controls, #timers { margin: 10px 0; }
-    #test { display: none; }
+    table { border-collapse: collapse; border-spacing: 0; }
+    td { padding: 0; margin: 0; }
   </style>
 </head>
-<body>
-  <div id="dashboard">
-    <h1>Multiplication Practice Dashboard</h1>
-    <div id="matrix-container">
-      <div id="performance-matrix"></div>
-    </div>
-    <div id="controls">
-      <label><strong>Time per question:</strong></label>
-      <label><input type="radio" name="questionTime" value="3" checked> 3 sec</label>
-      <label><input type="radio" name="questionTime" value="6"> 6 sec</label>
-      <label><input type="radio" name="questionTime" value="12"> 12 sec</label>
-      <button id="start-button">Start Test</button>
+<body class="bg-gray-100 min-h-screen">
+  <!-- Login View -->
+  <div id="loginView" class="flex items-center justify-center h-screen">
+    <div class="bg-white p-6 rounded shadow w-80">
+      <h2 class="text-xl font-bold mb-4">Choose or Create User</h2>
+      <select id="userSelect" class="w-full mb-2 p-2 border rounded"></select>
+      <input id="newUserInput" type="text" placeholder="New username" class="w-full mb-2 p-2 border rounded" />
+      <button id="addUserBtn" class="w-full mb-4 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Add User</button>
+      <button id="loginBtn" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Login</button>
     </div>
   </div>
 
-  <div id="test">
-    <div id="timers">
-      <div>Overall Time: <span id="overall-timer">90</span>s</div>
-      <div>Question Time: <span id="question-timer"></span>s</div>
+  <!-- Dashboard and Test Views -->
+  <div id="appView" class="hidden p-4">
+    <div id="dashboard" class="w-full max-w-2xl mx-auto">
+      <h1 class="text-2xl font-bold mb-2 text-center">Multiplication Practice Dashboard</h1>
+      <div class="mb-3 flex justify-center gap-3">
+        <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="3" /><span class="text-sm">3 sec</span></label>
+        <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="6" checked /><span class="text-sm">6 sec</span></label>
+        <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="12" /><span class="text-sm">12 sec</span></label>
+      </div>
+      <div class="mb-4 overflow-auto">
+        <table id="matrix" class="mx-auto border border-gray-400"></table>
+      </div>
+      <div class="text-center">
+        <button id="startBtn" class="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Start Test</button>
+      </div>
     </div>
-    <div id="question-area">
-      <div id="question" style="font-size:32px; margin-bottom:10px;"></div>
-      <div id="input"></div>
-      <div id="numpad"></div>
+
+    <div id="testView" class="hidden w-full max-w-md mx-auto mt-6">
+      <div class="flex justify-between mb-3 text-sm"><div>Total: <span id="totalTimer">90</span>s</div><div>Left: <span id="qTimer">0</span>s</div></div>
+      <div id="feedback" class="text-center text-4xl h-12 mb-2"></div>
+      <div id="question" class="text-2xl font-bold text-center mb-2"></div>
+      <div id="inputDisplay" class="text-xl text-center mb-3">&nbsp;</div>
+      <div class="grid grid-cols-3 gap-1">
+        <button class="num-btn p-2 bg-white rounded shadow text-sm" data-digit="1">1</button>
+        <button class="num-btn p-2 bg-white rounded shadow text-sm" data-digit="2">2</button>
+        <button class="num-btn p-2 bg-white rounded shadow text-sm" data-digit="3">3</button>
+        <button class="num-btn p-2 bg-white rounded shadow text-sm" data-digit="4">4</button>
+        <button class="num-btn p-2 bg-white rounded shadow text-sm" data-digit="5">5</button>
+        <button class="num-btn p-2 bg-white rounded shadow text-sm" data-digit="6">6</button>
+        <button class="num-btn p-2 bg-white rounded shadow text-sm" data-digit="7">7</button>
+        <button class="num-btn p-2 bg-white rounded shadow text-sm" data-digit="8">8</button>
+        <button class="num-btn p-2 bg-white rounded shadow text-sm" data-digit="9">9</button>
+        <button id="clearBtn" class="col-span-2 p-2 bg-red-200 rounded shadow text-sm">Clear</button>
+        <button class="num-btn p-2 bg-white rounded shadow text-sm" data-digit="0">0</button>
+      </div>
     </div>
   </div>
 
   <script>
-  (function(){
-    const statsKey = 'multiplicationStats';
-    let stats = {};
+    const matrixSize = 13;
+    let stats = [];
+    let current = { a: 0, b: 0 };
+    let totalTime = 90, qTime = 0, totalInterval, qInterval, timeLimit = 6;
+    let currentInput = '';
+    let currentUser = '';
+    const usersKey = 'mpUsers';
 
+    // User management
+    function loadUsers() {
+      return JSON.parse(localStorage.getItem(usersKey) || '[]');
+    }
+    function saveUsers(list) {
+      localStorage.setItem(usersKey, JSON.stringify(list));
+    }
+    function initUserSelect() {
+      const sel = document.getElementById('userSelect');
+      sel.innerHTML = '';
+      loadUsers().forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u;
+        opt.textContent = u;
+        sel.appendChild(opt);
+      });
+    }
+
+    // Stats persistence
     function loadStats() {
-      const stored = localStorage.getItem(statsKey);
-      stats = stored ? JSON.parse(stored) : {};
-      for (let i = 0; i <= 12; i++) {
-        for (let j = 0; j <= 12; j++) {
-          const key = `${i}_${j}`;
-          if (!stats[key]) stats[key] = { attempts: 0, correct: 0, totalTime: 0 };
-        }
-      }
+      const stored = localStorage.getItem('mpStats_' + currentUser);
+      if (stored) return JSON.parse(stored);
+      return Array.from({ length: matrixSize }, () =>
+        Array.from({ length: matrixSize }, () => ({ total: 0, correct: 0, timeSum: 0 }))
+      );
     }
-
     function saveStats() {
-      localStorage.setItem(statsKey, JSON.stringify(stats));
+      localStorage.setItem('mpStats_' + currentUser, JSON.stringify(stats));
     }
 
-    function getCellClass(i, j) {
-      const s = stats[`${i}_${j}`];
-      if (s.attempts === 0) return 'white';
-      if (s.correct >= 3) {
-        const avg = s.totalTime / s.correct;
-        const tLimit = selectedTime * 1000;
-        return avg <= tLimit / 2 ? 'green' : 'yellow';
-      }
-      return 'gray';
-    }
-
-    function renderMatrix() {
-      const container = document.getElementById('performance-matrix');
-      container.innerHTML = '';
-      const table = document.createElement('table');
-      const header = document.createElement('tr');
-      header.appendChild(document.createElement('th'));
-      for (let j = 0; j <= 12; j++) {
-        const th = document.createElement('th');
-        th.textContent = j;
-        header.appendChild(th);
-      }
-      table.appendChild(header);
-
-      for (let i = 0; i <= 12; i++) {
-        const row = document.createElement('tr');
-        const th = document.createElement('th');
-        th.textContent = i;
-        row.appendChild(th);
-        for (let j = 0; j <= 12; j++) {
-          const td = document.createElement('td');
-          td.id = `cell-${i}-${j}`;
-          td.className = getCellClass(i, j);
-          row.appendChild(td);
+    // Weight calculation
+    function computeWeights() {
+      const list = []; let totalW = 0;
+      for (let i = 0; i < matrixSize; i++) {
+        for (let j = 0; j < matrixSize; j++) {
+          const base = 1/((i+1)*(j+1));
+          const s = stats[i][j];
+          const ratio = s.total>0 ? s.correct/s.total : 0;
+          const profFactor = Math.max(0.1,1-ratio);
+          const w = base*profFactor;
+          list.push({i,j,w}); totalW += w;
         }
-        table.appendChild(row);
       }
-      container.appendChild(table);
+      return { list, totalW };
     }
 
-    let selectedTime = 6;
-    document.querySelectorAll('input[name="questionTime"]').forEach(radio => {
-      radio.addEventListener('change', () => selectedTime = parseInt(radio.value));
+    // Dashboard render
+    function renderMatrix() {
+      const matrixEl = document.getElementById('matrix'); matrixEl.innerHTML = '';
+      for (let i=0;i<matrixSize;i++){
+        const row=document.createElement('tr');
+        for(let j=0;j<matrixSize;j++){
+          const s=stats[i][j];
+          const cell=document.createElement('td');
+          cell.id=`cell-${i}-${j}`;
+          cell.className='w-10 h-10 border border-gray-300 p-0 text-xs text-center align-middle';
+          // Coloring logic
+          let color='bg-white';
+          if(s.total>0){
+            const errors=s.total-s.correct;
+            const errorRate=errors/s.total;
+            if(errorRate>=0.25){
+              color='bg-gray-300';
+            } else if(s.correct>=3){
+              const avgTime=s.timeSum/s.correct;
+              color=avgTime<=timeLimit/2?'bg-green-300':'bg-yellow-300';
+            } else {
+              color='bg-yellow-300';
+            }
+          }
+          cell.classList.add(color);
+          cell.innerHTML=`${i}×${j}<br>${i*j}`;
+          row.appendChild(cell);
+        }
+        matrixEl.appendChild(row);
+      }
+    }
+
+    // Timers
+    function resetQTimer() {
+      clearInterval(qInterval);
+      qTime = timeLimit;
+      document.getElementById('qTimer').textContent = qTime;
+    }
+    function startTotalTimer() {
+      document.getElementById('totalTimer').textContent = totalTime;
+      totalInterval = setInterval(() => {
+        totalTime--;
+        document.getElementById('totalTimer').textContent = totalTime;
+        if (totalTime <= 0) endTest();
+      }, 1000);
+    }
+    function startQTimer() {
+      clearInterval(qInterval);
+      qInterval = setInterval(() => {
+        qTime--;
+        document.getElementById('qTimer').textContent = qTime;
+        if (qTime <= 0) {
+          clearInterval(qInterval);
+          handleAnswer(null);
+        }
+      }, 1000);
+    }
+    function stopQTimer() {
+      clearInterval(qInterval);
+    }
+
+    // Next question
+    function nextFact(){
+      currentInput=''; document.getElementById('inputDisplay').textContent='';
+      const {list,totalW}=computeWeights();
+      let r=Math.random()*totalW, pick=list[0];
+      for(const item of list){
+        if(r<item.w){ pick=item; break; }
+        r-=item.w;
+      }
+      current={a:pick.i,b:pick.j};
+      document.getElementById('question').textContent=`${current.a} × ${current.b} =`;
+      resetQTimer(); startQTimer(); questionStart=Date.now();
+    }
+
+    // Handle answer
+    let questionStart=0;
+    function handleAnswer(input){
+      stopQTimer();
+      const correctAns=current.a*current.b;
+      const s=stats[current.a][current.b];
+      s.total++;
+      let isCorrect=false;
+      if(input===correctAns){
+        s.correct++;
+        s.timeSum+=(Date.now()-questionStart)/1000;
+        isCorrect=true;
+      }
+      saveStats(); renderMatrix();
+      const fb=document.getElementById('feedback');
+      fb.textContent=isCorrect?'🎉':'❌';
+      if(isCorrect) confetti({particleCount:50,spread:60});
+      setTimeout(()=>{ fb.textContent=''; if(totalTime>0) nextFact(); },600);
+    }
+
+    // Input handlers
+    function submitInput(){ if(!currentInput) return; handleAnswer(parseInt(currentInput)); }
+    document.querySelectorAll('.num-btn').forEach(btn=>btn.addEventListener('click',()=>{
+      currentInput+=btn.dataset.digit;
+      document.getElementById('inputDisplay').textContent=currentInput;
+      if(parseInt(currentInput)===current.a*current.b) submitInput();
+    }));
+    document.getElementById('clearBtn').addEventListener('click',()=>{
+      currentInput=''; document.getElementById('inputDisplay').textContent='';
+    });
+    document.addEventListener('keydown',e=>{
+      if(/^[0-9]$/.test(e.key)){
+        currentInput+=e.key;
+        document.getElementById('inputDisplay').textContent=currentInput;
+        if(parseInt(currentInput)===current.a*current.b) submitInput();
+      } else if(e.key==='Backspace'){
+        currentInput=currentInput.slice(0,-1);
+        document.getElementById('inputDisplay').textContent=currentInput;
+      }
     });
 
-    let overallTimerId, questionTimerId, questionIntervalId;
-    let overallTimeLeft = 90;
-    let questionStartTime, currentPair;
-
-    const questionTimerSpan = document.getElementById('question-timer');
-    const overallTimerSpan = document.getElementById('overall-timer');
-    const questionDiv = document.getElementById('question');
-    const inputDiv = document.getElementById('input');
-    const numpadDiv = document.getElementById('numpad');
-    const startButton = document.getElementById('start-button');
-    const dashboard = document.getElementById('dashboard');
-    const testDiv = document.getElementById('test');
-
-    // Build numpad
-    function addButton(text, fn) {
-      const b = document.createElement('button');
-      b.textContent = text;
-      b.addEventListener('click', fn);
-      numpadDiv.appendChild(b);
-    }
-    for (let d = 1; d <= 9; d++) addButton(d, () => appendInput(d));
-    addButton('0', () => appendInput(0));
-    addButton('←', () => { inputDiv.textContent = inputDiv.textContent.slice(0, -1); });
-    addButton('C', () => { inputDiv.textContent = ''; });
-
-    // Keyboard input
-    document.addEventListener('keydown', e => {
-      if (testDiv.style.display === 'block') {
-        if (e.key >= '0' && e.key <= '9') appendInput(e.key);
-        else if (e.key === 'Backspace') inputDiv.textContent = inputDiv.textContent.slice(0, -1);
-      }
+    // Start/end handlers
+    document.getElementById('startBtn').addEventListener('click',()=>{
+      document.querySelectorAll('input[name=timeLimit]').forEach(r=>{ if(r.checked) timeLimit=+r.value; });
+      totalTime=90; renderMatrix();
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('testView').classList.remove('hidden');
+      nextFact(); startTotalTimer();
     });
-
-    function appendInput(d) {
-      inputDiv.textContent += d;
-      checkAnswer();
-    }
-
-    function checkAnswer() {
-      const ans = parseInt(inputDiv.textContent);
-      if (ans === currentPair[0] * currentPair[1]) {
-        const timeTaken = Date.now() - questionStartTime;
-        updateStats(currentPair[0], currentPair[1], true, timeTaken);
-        nextQuestion();
-      }
-    }
-
-    function updateStats(a, b, correct, timeTaken) {
-      const key = `${a}_${b}`;
-      stats[key].attempts++;
-      if (correct) {
-        stats[key].correct++;
-        stats[key].totalTime += timeTaken;
-      }
-      saveStats();
-    }
-
-    function nextQuestion() {
-      clearTimeout(questionTimerId);
-      clearInterval(questionIntervalId);
-      inputDiv.textContent = '';
-      if (overallTimeLeft <= 0) return endTest();
-      askQuestion();
-    }
-
-    function askQuestion() {
-      const a = Math.floor(Math.random() * 13);
-      const b = Math.floor(Math.random() * 13);
-      currentPair = [a, b];
-      questionDiv.textContent = `${a} × ${b} =`;
-      questionStartTime = Date.now();
-
-      let qTimeLeft = selectedTime;
-      questionTimerSpan.textContent = qTimeLeft;
-      questionIntervalId = setInterval(() => {
-        qTimeLeft--;
-        questionTimerSpan.textContent = qTimeLeft;
-        if (qTimeLeft <= 0) clearInterval(questionIntervalId);
-      }, 1000);
-      questionTimerId = setTimeout(() => {
-        updateStats(a, b, false, 0);
-        nextQuestion();
-      }, selectedTime * 1000);
-    }
-
-    function startTest() {
-      loadStats(); renderMatrix();
-      dashboard.style.display = 'none';
-      testDiv.style.display = 'block';
-      overallTimeLeft = 90;
-      overallTimerSpan.textContent = overallTimeLeft;
-      overallTimerId = setInterval(() => {
-        overallTimeLeft--;
-        overallTimerSpan.textContent = overallTimeLeft;
-        if (overallTimeLeft <= 0) { clearInterval(overallTimerId); endTest(); }
-      }, 1000);
-      askQuestion();
-    }
-
-    function endTest() {
-      clearTimeout(questionTimerId);
-      clearInterval(questionIntervalId);
-      clearInterval(overallTimerId);
-      alert('Time is up!');
-      testDiv.style.display = 'none';
-      dashboard.style.display = 'block';
+    function endTest(){
+      clearInterval(totalInterval);
+      stopQTimer();
+      document.getElementById('testView').classList.add('hidden');
       renderMatrix();
+      document.getElementById('dashboard').classList.remove('hidden');
     }
 
-    startButton.addEventListener('click', startTest);
-    // Initial
-    loadStats(); renderMatrix();
-  })();
+    // Login logic
+    document.getElementById('addUserBtn').addEventListener('click',()=>{
+      const name=document.getElementById('newUserInput').value.trim();
+      if(!name) return;
+      const users=loadUsers();
+      if(!users.includes(name)){
+        users.push(name);
+        saveUsers(users);
+        initUserSelect();
+      }
+      document.getElementById('newUserInput').value='';
+    });
+    document.getElementById('loginBtn').addEventListener('click',()=>{
+      const sel=document.getElementById('userSelect');
+      currentUser=sel.value;
+      if(!currentUser) return;
+      stats=loadStats();
+      document.getElementById('loginView').classList.add('hidden');
+      document.getElementById('appView').classList.remove('hidden');
+      renderMatrix();
+    });
+
+    // Init
+    initUserSelect();
   </script>
 </body>
 </html>

@@ -13,7 +13,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
 
-<!-- LOGIN ------------------------------------------------------------ -->
+<!-- ───────── LOGIN ───────── -->
 <div id="loginView" class="flex items-center justify-center h-screen">
   <div class="bg-white p-6 rounded shadow w-80 space-y-4">
     <h2 class="text-xl font-bold">Who’s practicing?</h2>
@@ -33,15 +33,15 @@
   </div>
 </div>
 
-<!-- DASHBOARD & TEST ------------------------------------------------- -->
+<!-- ────── DASHBOARD & TEST ────── -->
 <div id="appView" class="hidden p-4">
   <div id="dashboard" class="max-w-2xl mx-auto">
     <h1 class="text-2xl font-bold text-center mb-4">Practice Dashboard</h1>
 
     <div class="flex justify-center mb-3 space-x-3">
-      <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="3"/><span>3 s</span></label>
-      <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="6" checked/><span>6 s</span></label>
-      <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="12"/><span>12 s</span></label>
+      <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="3"/><span>3&nbsp;s</span></label>
+      <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="6" checked/><span>6&nbsp;s</span></label>
+      <label class="flex items-center space-x-1"><input type="radio" name="timeLimit" value="12"/><span>12&nbsp;s</span></label>
     </div>
 
     <div class="overflow-auto mb-4">
@@ -54,14 +54,14 @@
     </div>
   </div>
 
-  <!-- TEST ----------------------------------------------------------- -->
+  <!-- ────────── TEST VIEW ────────── -->
   <div id="testView" class="hidden max-w-md mx-auto mt-6">
     <div class="flex justify-between mb-2 text-sm">
       <div>Total: <span id="totalTimer">90</span>s</div>
       <div>Left:  <span id="qTimer">0</span>s</div>
     </div>
-    <div id="feedback" class="text-center text-4xl h-12 mb-2"></div>
-    <div id="question" class="text-2xl font-bold text-center mb-2"></div>
+    <div id="feedback"  class="text-center text-4xl h-12 mb-2"></div>
+    <div id="question"  class="text-2xl font-bold text-center mb-2"></div>
     <div id="inputDisplay" class="text-xl text-center mb-3">&nbsp;</div>
 
     <div class="grid grid-cols-3 gap-1">
@@ -81,92 +81,79 @@
 </div>
 
 <script>
-/* ───── helpers for dimensions ───── */
-function dims(op){
+/* ───── matrix dimensions ───── */
+const dims = op => {
   switch(op){
     case 'addition':       return {rows:13, cols:13};
     case 'multiplication': return {rows:13, cols:13};
     case 'subtraction':    return {rows:10, cols:10};
-    case 'division':       return {rows:13, cols:12};    // quotient 0-12, divisor 1-12
+    case 'division':       return {rows:13, cols:12};   // quotient 0-12, divisor 1-12
   }
-}
+};
 
-/* ───── global vars ───── */
+/* ───── globals ───── */
 let user, op, stats;
-let timeLimit = 6;
-let totalTime = 90, qTime = 0, totalInt, qInt;
-let cur = {r:0,c:0}, input='', qStart=0;
+let timeLimit=6, totalTime=90, qTime=0, totalInt, qInt;
+let cur={r:0,c:0}, input='', qStart=0;
 const USERS_KEY='mpUsers';
 
 /* ───── persistence ───── */
-const users = () => JSON.parse(localStorage.getItem(USERS_KEY)||'[]');
-const saveUsers = u => localStorage.setItem(USERS_KEY,JSON.stringify(u));
+const users = ()=>JSON.parse(localStorage.getItem(USERS_KEY)||'[]');
+const saveUsers=u=>localStorage.setItem(USERS_KEY,JSON.stringify(u));
 function loadStats(){
   const {rows,cols}=dims(op);
   const key=`mpStats_${user}_${op}`;
   const stored=localStorage.getItem(key);
-  let out;
   if(stored){
-    out=JSON.parse(stored);
-    // if size changed (rare) re-init
-    if(out.length!==rows || out[0].length!==cols) out=null;
+    const obj=JSON.parse(stored);
+    if(obj.length===rows && obj[0].length===cols) return obj;
   }
-  if(!out){
-    out=Array.from({length:rows},()=>Array.from({length:cols},()=>({total:0,correct:0,time:0})));
-  }
-  return out;
+  return Array.from({length:rows},()=>Array.from({length:cols},()=>({total:0,correct:0,time:0})));
 }
 const saveStats=()=>localStorage.setItem(`mpStats_${user}_${op}`,JSON.stringify(stats));
 
-/* ───── problem helpers ───── */
-function symbol(){return {addition:'+',subtraction:'−',multiplication:'×',division:'÷'}[op];}
+/* ───── helpers ───── */
+const sym = () => ({addition:'+',subtraction:'−',multiplication:'×',division:'÷'})[op];
+const divisor  = c => c+1;                 // 1-12
+const dividend = (r,c)=> r*divisor(c);     // quotient × divisor
+const minuSub  = (r,c)=>[Math.max(r,c),Math.min(r,c)];
 function problem(r,c){
   switch(op){
     case 'addition':       return [`${r}+${c}`, r+c];
     case 'multiplication': return [`${r}×${c}`, r*c];
     case 'subtraction':{
-      const a=Math.max(r,c), b=Math.min(r,c);
-      return [`${a}−${b}`, a-b];
+      const [a,b]=minuSub(r,c); return [`${a}−${b}`, a-b];
     }
-    case 'division':{
-      const divisor=c+1, dividend=r*divisor;           // r is quotient row
-      return [`${dividend}÷${divisor}`, r];
-    }
+    case 'division':       return [`${dividend(r,c)}÷${divisor(c)}`, r];
   }
 }
 
-/* ───── weighting ───── */
+/* ───── weighting for next fact ───── */
 function weights(){
-  const {rows,cols}=dims(op);
-  let list=[],tot=0;
-  for(let r=0;r<rows;r++){
-    for(let c=0;c<cols;c++){
-      const s=stats[r][c];
-      const base=1/((r+1)*(c+1));
-      const prof=Math.max(0.1,1-(s.total?s.correct/s.total:0));
-      const w=base*prof; list.push({r,c,w}); tot+=w;
-    }
+  const {rows,cols}=dims(op); let list=[],tot=0;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const s=stats[r][c];
+    const base=1/((r+1)*(c+1));
+    const prof=Math.max(0.1,1-(s.total? s.correct/s.total:0));
+    const w=base*prof; list.push({r,c,w}); tot+=w;
   }
   return {list,tot};
 }
 
 /* ───── render dashboard ───── */
 function render(){
-  const tbl=document.getElementById('matrix');
-  tbl.innerHTML='';
+  const tbl=document.getElementById('matrix'); tbl.innerHTML='';
   const {rows,cols}=dims(op);
   for(let r=0;r<rows;r++){
     const tr=document.createElement('tr');
     for(let c=0;c<cols;c++){
-      const td=document.createElement('td');
-      td.className='border border-gray-300 text-xs text-center align-middle';
-      const s=stats[r][c];
-      let bg='bg-white';
+      const td=document.createElement('td'); td.className='border border-gray-300 text-xs text-center align-middle';
+      const s=stats[r][c]; let bg='bg-white';
       if(s.total){
         const err=(s.total-s.correct)/s.total;
         if(err>=0.25) bg='bg-gray-300';
         else if(s.correct>=3){
-          bg=(s.time/s.correct)<=timeLimit/2 ? 'bg-green-300':'bg-yellow-300';
+          bg=(s.time/s.correct)<=timeLimit/2?'bg-green-300':'bg-yellow-300';
         }else bg='bg-yellow-300';
       }
       td.classList.add(bg);
@@ -180,56 +167,92 @@ function render(){
 
 /* ───── timers ───── */
 function resetQ(){clearInterval(qInt);qTime=timeLimit;document.getElementById('qTimer').textContent=qTime;}
-function startTotal(){document.getElementById('totalTimer').textContent=totalTime;totalInt=setInterval(()=>{totalTime--;document.getElementById('totalTimer').textContent=totalTime;if(!totalTime) finish();},1000);}
-function tickQ(){clearInterval(qInt);qInt=setInterval(()=>{qTime--;document.getElementById('qTimer').textContent=qTime;if(!qTime){clearInterval(qInt);grade(null);}},1000);}
+function tickQ(){
+  clearInterval(qInt);
+  qInt=setInterval(()=>{
+    qTime--; document.getElementById('qTimer').textContent=qTime;
+    if(!qTime){ clearInterval(qInt); countWrongAndNext(); }
+  },1000);
+}
+function startTotal(){
+  document.getElementById('totalTimer').textContent=totalTime;
+  totalInt=setInterval(()=>{
+    totalTime--; document.getElementById('totalTimer').textContent=totalTime;
+    if(!totalTime) finish();
+  },1000);
+}
 
 /* ───── question flow ───── */
 function next(){
-  input='';document.getElementById('inputDisplay').textContent='';
-  const {list,tot}=weights(); let r=Math.random()*tot,p=list[0];
-  for(const f of list){if(r<f.w){p=f;break;}r-=f.w;}
-  cur={r:p.r,c:p.c};
+  input=''; document.getElementById('inputDisplay').textContent='';
+  const {list,tot}=weights(); let r=Math.random()*tot, pick=list[0];
+  for(const f of list){ if(r<f.w){pick=f;break;} r-=f.w;}
+  cur={r:pick.r, c:pick.c};
   document.getElementById('question').textContent=problem(cur.r,cur.c)[0]+' =';
-  resetQ();tickQ();qStart=Date.now();
+  resetQ(); tickQ(); qStart=Date.now();
 }
-function grade(val){
-  clearInterval(qInt);
-  const right=problem(cur.r,cur.c)[1];
-  const s=stats[cur.r][cur.c]; s.total++;
-  const ok=parseFloat(val)===right;
-  if(ok){s.correct++;s.time+=(Date.now()-qStart)/1000;}
-  saveStats();render();
-  const fb=document.getElementById('feedback');fb.textContent=ok?'🎉':'❌';
-  if(ok) confetti({particleCount:40,spread:60});
-  setTimeout(()=>{fb.textContent='';if(totalTime) next();},600);
+function countWrongAndNext(){
+  stats[cur.r][cur.c].total++;
+  saveStats(); render();
+  flash('❌',() => { if(totalTime) next(); });
+}
+function flash(char,cb){
+  const fb=document.getElementById('feedback'); fb.textContent=char;
+  setTimeout(()=>{fb.textContent='';cb&&cb();},600);
+}
+function handleCorrect(){
+  const s=stats[cur.r][cur.c];
+  s.total++; s.correct++; s.time+=(Date.now()-qStart)/1000;
+  saveStats(); render();
+  clearInterval(qInt);                        // stop per-question timer
+  confetti({particleCount:40,spread:60});
+  flash('🎉',()=>{ if(totalTime) next(); });
 }
 
 /* ───── input handling ───── */
-function commit(){if(!input)return;grade(input);}
-document.querySelectorAll('.num-btn').forEach(b=>b.onclick=()=>{input+=b.dataset.digit;document.getElementById('inputDisplay').textContent=input;commit();});
+function appendDigit(dig){
+  input+=dig; document.getElementById('inputDisplay').textContent=input;
+  const rightStr=problem(cur.r,cur.c)[1].toString();
+  if(input.length===rightStr.length){
+    if(input===rightStr) handleCorrect();          // correct → advance
+    else {                                          // wrong length-match -> flash X then reset input, keep timer
+      flash('❌');
+      input=''; document.getElementById('inputDisplay').textContent='';
+    }
+  }
+}
+document.querySelectorAll('.num-btn').forEach(b=>b.onclick=()=>appendDigit(b.dataset.digit));
 document.getElementById('clearBtn').onclick=()=>{input='';document.getElementById('inputDisplay').textContent='';};
 document.onkeydown=e=>{
-  if(/^[0-9]$/.test(e.key)){input+=e.key;document.getElementById('inputDisplay').textContent=input;}
-  else if(e.key==='Backspace'){input=input.slice(0,-1);document.getElementById('inputDisplay').textContent=input;}
-  if(input && parseFloat(input)===problem(cur.r,cur.c)[1]) commit();
+  if(/^[0-9]$/.test(e.key))       appendDigit(e.key);
+  else if(e.key==='Backspace'){ input=input.slice(0,-1); document.getElementById('inputDisplay').textContent=input; }
 };
 
 /* ───── start / finish ───── */
 document.getElementById('startBtn').onclick=()=>{
   document.querySelectorAll('input[name=timeLimit]').forEach(r=>{if(r.checked)timeLimit=+r.value;});
-  totalTime=90;render();
+  totalTime=90; render();
   document.getElementById('dashboard').classList.add('hidden');
   document.getElementById('testView').classList.remove('hidden');
-  next();startTotal();
+  next(); startTotal();
 };
-function finish(){clearInterval(totalInt);clearInterval(qInt);document.getElementById('testView').classList.add('hidden');render();document.getElementById('dashboard').classList.remove('hidden');}
+function finish(){
+  clearInterval(totalInt); clearInterval(qInt);
+  document.getElementById('testView').classList.add('hidden'); render();
+  document.getElementById('dashboard').classList.remove('hidden');
+}
 document.getElementById('changeOpBtn').onclick=()=>{document.getElementById('appView').classList.add('hidden');document.getElementById('loginView').classList.remove('hidden');};
 
 /* ───── login flow ───── */
 function initUsers(){
-  const sel=document.getElementById('userSelect');sel.innerHTML='';users().forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u;sel.appendChild(o);});
+  const sel=document.getElementById('userSelect'); sel.innerHTML='';
+  users().forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u;sel.appendChild(o);});
 }
-document.getElementById('addUserBtn').onclick=()=>{const n=document.getElementById('newUserInput').value.trim();if(!n)return;const u=users();if(!u.includes(n)){u.push(n);saveUsers(u);initUsers();}document.getElementById('newUserInput').value='';};
+document.getElementById('addUserBtn').onclick=()=>{
+  const n=document.getElementById('newUserInput').value.trim(); if(!n)return;
+  const u=users(); if(!u.includes(n)){u.push(n);saveUsers(u);initUsers();}
+  document.getElementById('newUserInput').value='';
+};
 document.getElementById('loginBtn').onclick=()=>{
   user=document.getElementById('userSelect').value;
   op=document.querySelector('input[name=op]:checked').value;

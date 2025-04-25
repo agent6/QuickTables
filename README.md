@@ -9,9 +9,10 @@ QuickTables is a web-based app designed to help students practice multiplication
 - **Automatic Progression** — No need to press Enter if you're correct!  
 - **Performance Tracker Matrix**  
    - 🟩 Green: Correct & Quick  
-   - 🟨 Yellow: Correct but Slow  
-   - ⬜ White: Not Practiced  
+   - 🟨 Yellow: Correct but Slow
    - ⬛ Gray: Practiced but Unreliable  
+   - ⬜ White: Not Practiced  
+  
 - **Adjustable Time Per Question** (3s, 6s, 12s)  
 - **90-Second Challenge Mode** with countdown timer  
 - **Progress Saved Locally** (using LocalStorage)

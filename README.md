@@ -25,6 +25,7 @@ QuickTables is a web-based app designed to help students practice multiplication
 
 ## 🖥️ Demo
 Simply open the `index.html` file in your browser — no installation needed!
+Or run in GitHub Pages
 
 ## 📂 Installation
 Clone the repo:
